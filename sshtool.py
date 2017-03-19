@@ -223,7 +223,9 @@ def start_ssh(selectext, host, user, password, channel, port=22, **_unused):
 
     if isinstance(channel, list):
         stop_list = [ start_channel(selectext, client, **dic) \
-                for dic in channel ]
+                for dic in [ load_json_file(elem) \
+                if isinstance(elem, str) else elem \
+                for elem in channel ] ]
         def _():
             for stop in stop_list:
                 stop()
