@@ -18,9 +18,6 @@ import sys
 import threading
 import time
 
-from collections import namedtuple
-from functools import reduce
-from socket import socketpair
 
 from selectext import SelectExt
 
@@ -31,6 +28,7 @@ from selectext import SelectExt
 
 # Global variable
 TOPDIR = None
+JSONDIR = None
 
 def open_write_buffer(path, mode):
     fullpath = os.path.join(TOPDIR, path)
@@ -38,6 +36,11 @@ def open_write_buffer(path, mode):
     if not os.path.isdir(dirpath):
         os.makedirs(dirpath)
     return open(fullpath, mode)
+
+
+def load_json_file(path):
+    with open(os.path.join(JSONDIR, path)) as fobj:
+        return json.load(fobj)
 
 
 class OutputBuffer(object):
@@ -215,6 +218,9 @@ def start_ssh(selectext, host, user, password, channel, port=22, **_unused):
 
     client = ssh_connect(host, port, user, password)
 
+    if isinstance(channel, str):
+        channel = load_json_file(channel)
+
     if isinstance(channel, list):
         stop_list = [ start_channel(selectext, client, **dic) \
                 for dic in channel ]
@@ -277,4 +283,5 @@ if __name__ == '__main__':
     TOPDIR = args.topdir
 
     with open(args.jsonfile, 'r') as fobj:
+        JSONDIR=os.path.dirname(args.jsonfile)
         sshtool(json.load(fobj))
