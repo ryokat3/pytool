@@ -3,4 +3,17 @@
 PyTool -- Python Tools
 ======================
 
-- **sshtool**: SSH tool for system operation and management
+- **sshtool**: SSH tool to rpc, expect, and sftp
+
+
+Motivation
+----------
+
+Generic tool to do
+
+
+SSH Tool
+--------
+
+A tool to download resources of remote systems in one command.
+The resources can be defined in JSON file(s).
