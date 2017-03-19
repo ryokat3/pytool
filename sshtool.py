@@ -271,7 +271,8 @@ def sshtool(root):
 def get_argparser():
     parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument('jsonfile', type=str, help="JSON File")
+    parser.add_argument('jsonfile_list', type=str, \
+            metavar='N', nargs='+', help="JSON File")
     parser.add_argument('-t', action='store', dest='topdir',
             default='.', help='top directory on which data is stored')
 
@@ -284,6 +285,7 @@ if __name__ == '__main__':
     # Global variable
     TOPDIR = args.topdir
 
-    with open(args.jsonfile, 'r') as fobj:
-        JSONDIR=os.path.dirname(args.jsonfile)
-        sshtool(json.load(fobj))
+    for jsonfile in args.jsonfile_list:
+        with open(jsonfile, 'r') as fobj:
+            JSONDIR=os.path.dirname(jsonfile)
+            sshtool(json.load(fobj))
