@@ -9,7 +9,7 @@ PyTool -- Python Tools
 Motivation
 ----------
 
-Generic tool to do
+Collection of generic tools for various tasks.
 
 
 SSH Tool
