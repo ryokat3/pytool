@@ -30,8 +30,11 @@ from selectext import SelectExt
 TOPDIR = None
 JSONDIR = None
 
+def local_path(path):
+    return os.path.join(TOPDIR, path)
+
 def open_write_buffer(path, mode):
-    fullpath = os.path.join(TOPDIR, path)
+    fullpath = local_path(path)
     dirpath = os.path.dirname(fullpath)
     if not os.path.isdir(dirpath):
         os.makedirs(dirpath)
@@ -200,6 +203,15 @@ class ExpectChannel(object):
         return reader.stop
 
 
+def sftp_start(client, remote_file, local_file, **nouse):
+
+    sftp = client.open_sftp()
+    sftp.get(remote_file, local_path(local_file))
+    sftp.close()
+    
+    return lambda:None
+
+
 ########################################################################
 # Main
 ########################################################################
@@ -210,6 +222,8 @@ def start_channel(selectext, client, channel_type, **dic):
         return RpcChannel.start(selectext, client, **dic)
     elif channel_type == 'shell':
         return ExpectChannel.start(selectext, client, **dic)
+    elif channel_type == 'sftp':
+        return sftp_start(client, **dic)
     else:
         raise Exception("Unknown SSH type: ", channel_type)
 
@@ -242,7 +256,7 @@ def start_ssh(selectext, host, user, password, channel, port=22, **_unused):
 def start_tool(selectext, root):
 
     if isinstance(root, list):
-        stop_list = [ start_ssh(**dic) for dic in root ]
+        stop_list = [ start_ssh(selectext, **dic) for dic in root ]
         def _stop():
             for stop in stop_list:
                 stop()
