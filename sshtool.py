@@ -26,6 +26,10 @@ from selectext import SelectExt
 # Context
 ########################################################################
 
+is_string = lambda x: isinstance(x, str) \
+        if sys.version_info >= (3, 0) else \
+        lambda x: isinstance(x, str) or isinstance(x, unicode)
+
 # Global variable
 TOPDIR = None
 JSONDIR = None
@@ -76,11 +80,15 @@ class OutputBuffer(object):
 # Main
 ########################################################################
 
-def ssh_connect(host, port, user, password):
+def ssh_connect(host, port, user, password, **kwargs):
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, port, user, password)
+    #client.connect(host, port, user, password, allow_agent, look_for_keys)
+    client.connect(host, port, user, password, **kwargs)
+
+    # For CISCO?
+    # ssh.connect(hostname, username='user', password='pwd', allow_agent=False,look_for_keys=False)
 
     return client
 
@@ -231,11 +239,11 @@ def start_channel(selectext, client, outputdir, channel_type, **dic):
 
 
 def start_ssh(selectext, host, user, password, channel,
-        port=22, outputdir="", **_unused):
+        port=22, outputdir="", **kwargs):
 
-    client = ssh_connect(host, port, user, password)
+    client = ssh_connect(host, port, user, password, **kwargs)
 
-    if isinstance(channel, str) or isinstance(channel, unicode):
+    if is_string(channel):
         channel = load_json_file(channel)
 
     if isinstance(channel, list):
