@@ -48,12 +48,14 @@ def load_json_file(path):
 
 class OutputBuffer(object):
 
-    def __init__(self, path, binary):
+    def __init__(self, path, binary, dirpath=""):
         self.stdout = (path == None)
         self.binary = binary
 
         if not self.stdout:
-            self.fobj = open_write_buffer(path, 'wb' if binary else 'w')
+            self.fobj = open_write_buffer(
+                    os.path.join(dirpath, path),
+                    'wb' if binary else 'w')
         elif binary:
             self.fobj = sys.stdout.buffer
         else:
@@ -117,11 +119,11 @@ class RpcChannel(object):
             self.stop()
 
     @staticmethod
-    def start(selectext, client, cmd, output=None,
+    def start(selectext, client, outputdir, cmd, output=None,
             binary=False, stderr=True, tty=True, **_nouse):
 
         channel = open_channel(client, stderr, tty)
-        outbuf = OutputBuffer(output, binary)
+        outbuf = OutputBuffer(output, binary, outputdir)
 
         def cleanup():
             outbuf.close()
@@ -183,11 +185,11 @@ class ExpectChannel(object):
         self.cleanup()
 
     @staticmethod
-    def start(selectext, client, expect_list, output=None,
+    def start(selectext, client, outputdir, expect_list, output=None,
             timeout=1.0, stderr=True, tty=True, **_nouse):
 
         channel = open_channel(client, stderr, tty)
-        outbuf = OutputBuffer(output, binary=False)
+        outbuf = OutputBuffer(output, False, outputdir)
 
         def cleanup():
             outbuf.close()
@@ -203,7 +205,7 @@ class ExpectChannel(object):
         return reader.stop
 
 
-def sftp_start(client, remote_file, local_file, **nouse):
+def sftp_start(client, outputdir, remote_file, local_file, **nouse):
 
     sftp = client.open_sftp()
     sftp.get(remote_file, local_path(local_file))
@@ -216,27 +218,28 @@ def sftp_start(client, remote_file, local_file, **nouse):
 # Main
 ########################################################################
 
-def start_channel(selectext, client, channel_type, **dic):
+def start_channel(selectext, client, outputdir, channel_type, **dic):
 
     if channel_type == 'rpc':
-        return RpcChannel.start(selectext, client, **dic)
+        return RpcChannel.start(selectext, client, outputdir, **dic)
     elif channel_type == 'shell':
-        return ExpectChannel.start(selectext, client, **dic)
+        return ExpectChannel.start(selectext, client, outputdir, **dic)
     elif channel_type == 'sftp':
-        return sftp_start(client, **dic)
+        return sftp_start(client, outputdir, **dic)
     else:
         raise Exception("Unknown SSH type: ", channel_type)
 
 
-def start_ssh(selectext, host, user, password, channel, port=22, **_unused):
+def start_ssh(selectext, host, user, password, channel,
+        port=22, outputdir="", **_unused):
 
     client = ssh_connect(host, port, user, password)
 
-    if isinstance(channel, str):
+    if isinstance(channel, str) or isinstance(channel, unicode):
         channel = load_json_file(channel)
 
     if isinstance(channel, list):
-        stop_list = [ start_channel(selectext, client, **dic) \
+        stop_list = [ start_channel(selectext, client, outputdir, **dic) \
                 for dic in [ load_json_file(elem) \
                 if isinstance(elem, str) else elem \
                 for elem in channel ] ]
@@ -246,7 +249,7 @@ def start_ssh(selectext, host, user, password, channel, port=22, **_unused):
             client.close()
         return _
     else:
-        stop = start_channel(selectext, client, **channel)
+        stop = start_channel(selectext, client, outputdir, **channel)
         def _():
             stop()
             client.close()
