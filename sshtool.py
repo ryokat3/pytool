@@ -15,7 +15,6 @@ import select
 import signal
 import socket
 import sys
-import threading
 import time
 
 
@@ -213,13 +212,29 @@ class ExpectChannel(object):
         return reader.stop
 
 
-def sftp_start(client, outputdir, remote_file, local_file, **nouse):
+def sftp_start(selectext, client, outputdir, remote_file, local_file, \
+        **nouse):
 
     sftp = client.open_sftp()
-    sftp.get(remote_file, local_path(local_file))
-    sftp.close()
+    stat = sftp.stat(remote_file)
+
+    # Workaround for sftp.get() hangs
+    def sftp_close(transferred, to_be_transferred):
+        if transferred == stat.st_size:
+            channel = sftp.get_channel()
+            channel.close()
+            sftp.close()
+        selectext.set_timer(0.01, lambda:None)
+
+    try:
+        sftp.get(remote_file, local_path(local_file), sftp_close)
+    except Exception as e:
+        pass
+    #sftp.get(remote_file, local_path(local_file))
+    #sftp.close()
     
-    return lambda:None
+    #return lambda:None
+    return sftp_close
 
 
 ########################################################################
@@ -233,7 +248,7 @@ def start_channel(selectext, client, outputdir, channel_type, **dic):
     elif channel_type == 'shell':
         return ExpectChannel.start(selectext, client, outputdir, **dic)
     elif channel_type == 'sftp':
-        return sftp_start(client, outputdir, **dic)
+        return sftp_start(selectext, client, outputdir, **dic)
     else:
         raise Exception("Unknown SSH type: ", channel_type)
 
