@@ -25,10 +25,6 @@ from selectext import SelectExt
 # Context
 ########################################################################
 
-is_string = lambda x: isinstance(x, str) \
-        if sys.version_info >= (3, 0) else \
-        lambda x: (isinstance(x, str) or isinstance(x, unicode))
-
 # Global variable
 TOPDIR = None
 JSONDIR = None
@@ -258,7 +254,7 @@ def start_ssh(selectext, host, user, password, channel,
 
     client = ssh_connect(host, port, user, password, **kwargs)
 
-    if is_string(channel):
+    if not isinstance(channel, list) and not isinstance(channel, dict):
         channel = load_json_file(channel)
 
     if isinstance(channel, list):
