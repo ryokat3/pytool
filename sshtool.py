@@ -27,7 +27,7 @@ from selectext import SelectExt
 
 is_string = lambda x: isinstance(x, str) \
         if sys.version_info >= (3, 0) else \
-        lambda x: isinstance(x, str) or isinstance(x, unicode)
+        lambda x: (isinstance(x, str) or isinstance(x, unicode))
 
 # Global variable
 TOPDIR = None
